@@ -96,7 +96,7 @@ extern "C"{
         if (!tfile.is_open()) cerr << "file open failed" << endl;
 
 
-
+        
        
         shared_ptr<BObject> obj = is2BObj(tfile, error);
 
@@ -110,15 +110,52 @@ extern "C"{
             if (error->check()) error->set(ErrorClass::ErrNov, "found res.interval error");
             return res;
         }
-        res->interval = std::get<int>(val -> value);
-
+        res->interval = std::get<int64_t>(val -> value);
+        
         val = (*umapdict)["peers"];
         if(!val){
             if (error->check()) error->set(ErrorClass::ErrNov, "found res.peers error");
             return res;
         }
-        string peers_s = std::get<std::string>(val -> value);
+
+        
+        string peers_s;
+        if(val->type == bencode::BType::BSTR){
+            peers_s = std::get<std::string>(val -> value);
+        }else if(val->type == bencode::BType::BLIST){
+            cout<<"PEERS: "<<endl;
+            // 转换为*{ip}&{port}*...的形式
+            peers_s += "*";
+            auto tplist = std::get<BObject::LIST>(val -> value);
+            string tpstr;
+            int64_t tpint;
+            for(auto &item : tplist){
+                auto tpdict = std::get<BObject::DICT>(item -> value);
+                
+                for(auto &it : tpdict){
+                    if(it.first == "ip"){ // skip "peer id"
+                        cout<<it.first<<" : ";
+                        tpstr = std::get<std::string>(it.second->value);
+                        peers_s += tpstr;
+                        peers_s += "&";
+                        cout<<tpstr<<"   ";
+                    }else if(it.first == "port"){
+                        cout<<it.first<<" : ";
+                        tpint = get<int64_t>(it.second->value);
+                        peers_s += to_string(tpint);
+                        peers_s += "*";
+                        cout<<tpint<<"   ";
+                    }
+                    
+                }
+                cout<<std::endl;
+            }
+            
+        }
+            
+        
         res->peers_length = peers_s.size();
+        std::cout<<res->peers_length<<"\n\n\n\n";
         res->peers = new char[peers_s.size() + 1];
         strcpy_s(res->peers, peers_s.size() + 1, peers_s.c_str());
 
@@ -136,7 +173,7 @@ extern "C"{
         return res;
     }
 
-    char* addCharArray(char* c, int n){
+    char* addCharArray(char* c, int64_t n){
 		c += n;
 		return c;
 	}

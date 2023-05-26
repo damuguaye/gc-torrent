@@ -17,6 +17,6 @@ extern "C" {
 	TorrentStruct* getTorrentFile(char* path, Error* error = nullptr);
 	TorrentStruct* getTorrentStr(std::string str, Error* error = nullptr);
 	TrackRespStruct* getPeers(char* path, Error* error = nullptr);
-	char* addCharArray(char* c, int n);
+	char* addCharArray(char* c, int64_t n);
 
 }

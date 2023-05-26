@@ -119,7 +119,7 @@ namespace bencode {
 
         using LIST = std::vector<std::shared_ptr<BObject>>;
         using DICT = std::vector<std::pair<std::string, std::shared_ptr<BObject>>>;   
-        using BValue = std::variant<int, std::string, LIST, DICT>;
+        using BValue = std::variant<int64_t, std::string, LIST, DICT>;
 
         BObject() = default; // 默认构造函数
 
@@ -128,7 +128,7 @@ namespace bencode {
 
         BObject(const char* str);
 
-        BObject(int v);
+        BObject(int64_t v);
 
         BObject(LIST list);
 
@@ -137,9 +137,9 @@ namespace bencode {
         operator std::string(); //转化函数，将此类转化为string
          // 强制类型转换函数，当进行强制类型转换到string时生效
 
-        operator int();
+        operator int64_t();
 
-        BObject& operator=(int);//即=运算符重载
+        BObject& operator=(int64_t);//即=运算符重载
         //前面加上&主要是用于连续赋值
         //如 a = b = c
 
@@ -150,7 +150,7 @@ namespace bencode {
         BObject& operator=(DICT);
         /*
 
-        BObject& operator+(int);
+        BObject& operator+(int64_t);
 
         BObject& operator+(std::string);
 
@@ -161,35 +161,35 @@ namespace bencode {
 
         std::string* Str(Error* Error); //Bobject转换为string
 
-        int* Int(Error* error);
+        int64_t* Int(Error* error);
 
         LIST* List(Error* error);
 
         DICT* Dict(Error* error);
 
-        int Bencode(std::ostream& os, Error* error); //BObject -> 输出流 字符
+        int64_t Bencode(std::ostream& os, Error* error); //BObject -> 输出流 字符
 
         static std::shared_ptr<BObject> Parse(std::istream& in, Error* error);
         // static 静态函数，只能在本文件中使用
 
-        static int EncodeString(std::ostream& os, std::string_view val);
+        static int64_t EncodeString(std::ostream& os, std::string_view val);
         // 使用string，当length小于16时，会在栈上分配内存，大于16会在堆上分配
         // string_view 没有堆内存的分配，但不可修改，可将其转换为string后修改
 
         static std::string DecodeString(std::istream& in, Error* error);
 
-        static int EncodeInt(std::ostream& os, int val);
+        static int64_t EncodeInt(std::ostream& os, int64_t val);
 
-        static int DecodeInt(std::istream& in, Error* error);
+        static int64_t DecodeInt(std::istream& in, Error* error);
 
-        static int getIntLen(int val);
+        static int64_t getIntLen(int64_t val);
 
 
         using UMAPDICT = std::unordered_map<std::string, std::shared_ptr<BObject>>;
 
         void DICTVectorToUnorderedMap(UMAPDICT* umapdict,Error* error);
 
-        friend void ToTorrent(BObject &obj, int torrent);
+        friend void ToTorrent(BObject &obj, int64_t torrent);
 
 
 
@@ -211,14 +211,14 @@ namespace bencode {
     }
 
 
-    int* BObject::Int(Error* error) {
+    int64_t* BObject::Int(Error* error) {
         if (this->type != BType::BINT) {
             if (error->check()) error->set(ErrorClass::ErrTyp);
             //error -> handleError("BObject to int error");
             return nullptr;
         }
 
-        return std::get_if<int>(&this->value);
+        return std::get_if<int64_t>(&this->value);
     }
 
     BObject::LIST* BObject::List(Error* error) {
@@ -241,8 +241,8 @@ namespace bencode {
         return std::get_if<BObject::DICT>(&this->value);
     }
 
-    int BObject::Bencode(std::ostream& os, Error* error) {
-        int wlen = 0;
+    int64_t BObject::Bencode(std::ostream& os, Error* error) {
+        int64_t wlen = 0;
 
         if (!os) return wlen;
 
@@ -255,7 +255,7 @@ namespace bencode {
         }
         case BType::BINT: {
             val = this->Int(error);
-            wlen += EncodeInt(os, *((int*)val));
+            wlen += EncodeInt(os, *((int64_t*)val));
             break;
         }
         case BType::BLIST: {
@@ -292,9 +292,9 @@ namespace bencode {
         return wlen;
     }
 
-    int BObject::getIntLen(int val) {
-        int len = 1;
-        int bigger = 10;
+    int64_t BObject::getIntLen(int64_t val) {
+        int64_t len = 1;
+        int64_t bigger = 10;
         while (bigger <= val) {
             bigger *= 10;
             ++len;
@@ -302,9 +302,9 @@ namespace bencode {
         return len;
     }
 
-    int BObject::EncodeInt(std::ostream& os, int val) {
+    int64_t BObject::EncodeInt(std::ostream& os, int64_t val) {
         os << 'i';
-        int wlen = 1;
+        int64_t wlen = 1;
         if (val < 0) {
             val *= -1;
             os << '-';
@@ -315,10 +315,10 @@ namespace bencode {
         return  wlen;
     }
 
-    int BObject::EncodeString(std::ostream& os, std::string_view val) {
+    int64_t BObject::EncodeString(std::ostream& os, std::string_view val) {
 
-        int string_length = val.length();
-        int wlen = getIntLen(string_length);
+        int64_t string_length = val.length();
+        int64_t wlen = getIntLen(string_length);
         os << string_length;
         os << ':';
         ++wlen;
@@ -395,12 +395,12 @@ namespace bencode {
         return std::shared_ptr<BObject>(obj);
     }
 
-    int BObject::DecodeInt(std::istream& in, Error* error) {
+    int64_t BObject::DecodeInt(std::istream& in, Error* error) {
         char c;
         in.get(c);
 
 
-        int val;
+        int64_t val;
         if (c != 'i') {
             if (error->check()) error->set(ErrorClass::ErrEpI, "Decode Int error");
             return 0;
@@ -417,8 +417,8 @@ namespace bencode {
     }
 
     std::string BObject::DecodeString(std::istream& in, Error* error) {
-        int len = 0;
-        int decodedlen = -1;
+        int64_t len = 0;
+        int64_t decodedlen = -1;
         char c = in.peek();
         if (!isdigit(c)) {
             if (error->check()) error->set(ErrorClass::ErrNum, "Decode String(digit) error");
@@ -444,7 +444,7 @@ namespace bencode {
         return s;
     }
 
-    BObject& BObject::operator=(int val) {
+    BObject& BObject::operator=(int64_t val) {
         this->type = BType::BINT;
         this->value = val;
         return *this;

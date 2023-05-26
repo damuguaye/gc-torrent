@@ -40,13 +40,13 @@ func C2GoTorrent(up uintptr) *GoTorrent {
 	fmt.Printf("gt.Announce: %v\n", gt.Announce)
 	gt.Name = string(C.GoBytes(unsafe.Pointer(ts.name), ts.name_length))
 	copy(gt.InfoSHA[:], C.GoBytes(unsafe.Pointer(ts.infoSHA), C.int(SHALEN))[:])
-	gt.Length = int(ts.length)
-	gt.PieceLength = int(ts.piece_length)
+	gt.Length = int(int64(ts.length))
+	gt.PieceLength = int(int64(ts.piece_length))
 
 	dll := syscall.MustLoadDLL("../include/tf.dll")
 	funcACA := dll.MustFindProc("addCharArray")
 
-	piece_count := int(ts.piece_count)
+	piece_count := int(int64(ts.piece_count))
 
 	addrChar := uintptr(unsafe.Pointer(ts.pieceSHA))
 
@@ -71,9 +71,15 @@ func ParseTorrentFile(path string) *GoTorrent {
 func C2GoPeers(up uintptr) *GoPeers {
 	trs := (*C.struct_TrackRespStruct)(unsafe.Pointer(up))
 	gp := new(GoPeers)
-	gp.Interval = int(trs.interval)
+	gp.Interval = int(int64(trs.interval))
 	gp.Peers = string(C.GoBytes(unsafe.Pointer(trs.peers), trs.peers_length))
-	gp.Peers6 = string(C.GoBytes(unsafe.Pointer(trs.peers6), trs.peers6_length))
+	if int(trs.peers6_length) > 1 {
+		gp.Peers6 = string(C.GoBytes(unsafe.Pointer(trs.peers6), trs.peers6_length))
+		//fmt.Println(int(trs.peers6_length), "LLLLLLLLLLLLLLL")
+	} else {
+		gp.Peers6 = ""
+		//fmt.Println(int(trs.peers6_length), "NNNNNNNNNNNNN")
+	}
 	return gp
 }
 
@@ -95,6 +101,7 @@ func GetGoPeers(ir io.ReadCloser) *GoPeers {
 		fmt.Println("Fail create temp file: " + err.Error())
 		return nil
 	}
+
 	_, err = file.Write(body)
 	if err != nil {
 		fmt.Println("Fail write to temp file: " + err.Error())

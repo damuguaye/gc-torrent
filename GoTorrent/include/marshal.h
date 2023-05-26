@@ -16,20 +16,20 @@ using namespace bencode;
 const int SHALEN = 20;
 
 struct TorrentInfo {
-    int length;
+    int64_t length;
     std::string name;
     int piece_length; //每个片段的长度
     char* pieces;
-    int piece_count; //length / piece_length
+    int64_t piece_count; //length / piece_length
 };
 
 struct TorrentFile{
     std::string announce;
     char* infoSHA;
     std::string name;
-    int length;
+    int64_t length;
     int piece_length;
-    int piece_count;
+    int64_t piece_count;
     char* pieceSHA;
 };
 
@@ -64,14 +64,14 @@ void ToTorrentInfo(BObject::UMAPDICT* umapdict, TorrentInfo &torrentInfo, Error*
         if (error->check()) error->set(ErrorClass::ErrNov, "found info-length error");
         return;
     }
-    torrentInfo.length = std::get<int>(val -> value);
+    torrentInfo.length = std::get<int64_t>(val -> value);
 
     val = (*umapdict)["piece length"];
     if(!val){
         if (error->check()) error->set(ErrorClass::ErrNov, "found info-piece length error");
         return;
     }
-    torrentInfo.piece_length = std::get<int>(val -> value);
+    torrentInfo.piece_length = std::get<int64_t>(val -> value);
 
     val = (*umapdict)["pieces"];
     if(!val){
@@ -83,7 +83,7 @@ void ToTorrentInfo(BObject::UMAPDICT* umapdict, TorrentInfo &torrentInfo, Error*
     if(torrentInfo.length % torrentInfo.piece_length) ++torrentInfo.piece_count;
     torrentInfo.pieces = new char[torrentInfo.piece_count * SHALEN + 1];
     std::string pieces = std::get<std::string>(val -> value);
-    for(int i = 0; i < pieces.size(); ++i){
+    for(int64_t i = 0; i < pieces.size(); ++i){
         torrentInfo.pieces[i] = pieces[i];
     }
 
@@ -121,7 +121,7 @@ void ToTorrent(BObject::UMAPDICT* umapdict, TorrentFile &torrent, Error* error){
     std::stringstream ss;
 
     
-    int coutlen = val -> Bencode(ss, error);
+    int64_t coutlen = val -> Bencode(ss, error);
 
 
     torrent.infoSHA = sha.hashStream(ss);

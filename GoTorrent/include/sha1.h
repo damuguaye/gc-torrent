@@ -64,9 +64,9 @@ private:
     uint32_t T;
 
 
-    unsigned int strLen; //原始数据总长度
-    unsigned int length; //最终总长度
-    unsigned int pieces; //补足后长度除以512
+    int64_t strLen; //原始数据总长度
+    int64_t length; //最终总长度
+    int64_t pieces; //补足后长度除以512
 
     std::string *str;
 
@@ -120,7 +120,7 @@ void SHA1::complement(){
     
     
     strLen = str -> length();
-    unsigned int len = strLen + 1;
+    int64_t len = strLen + 1;
     int remainder = len % SHA1_BLOB_UINT8;
 
 
@@ -135,7 +135,7 @@ void SHA1::complement(){
         str -> push_back(0x00);
     }
 
-    uint64_t slen = strLen * 8;
+    int64_t slen = strLen * 8;
     
     for(int i = SHA1_REST_UINT8; i >= 0; i -= 8){
         str -> push_back(0xFF & (slen >> i));
@@ -176,7 +176,7 @@ void SHA1::hashString(){
 
 
 
-    for(int i = 0; i < pieces; ++i){
+    for(int64_t i = 0; i < pieces; ++i){
         resetABCDE();
 
         for(int j = 0; j < SHA1_BLOB_UINT32; ++j){
@@ -301,7 +301,7 @@ char* SHA1::hashStream(std::istream &in){
         
     }
     
-    int count = strLen;
+    int64_t count = strLen;
     if(count % 4)
         count += (4 - (count % 4));
     --strLen;
@@ -311,7 +311,7 @@ char* SHA1::hashStream(std::istream &in){
     (count - remainder + 2 * SHA1_BLOB_UINT8) : (count - remainder + SHA1_BLOB_UINT8);
        
 
-    for(int i = count; i < length - 8; i += 4){
+    for(int64_t i = count; i < length - 8; i += 4){
         W[W_count++] = 0;
 
         if(W_count == SHA1_BLOB_UINT32){
@@ -320,7 +320,7 @@ char* SHA1::hashStream(std::istream &in){
             W_count = 0;
         }
     }
-    uint64_t strLen64 = strLen * 8;
+    int64_t strLen64 = strLen * 8;
     std::cout<<"char len: "<<strLen<<std::endl;
     std::cout<<"length64:   "<<std::dec<<strLen64<<std::endl;   
     W[W_count++] = (strLen64 >> 32) & 0xFFFFFFFF;

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -48,6 +49,7 @@ func CreateUrl(gt *GoTorrent, peerId [20]byte) (string, error) {
 
 	base.RawQuery = params.Encode()
 	return base.String(), nil
+
 }
 
 func buildPeerInfo(peers []byte) []PeerInfo {
@@ -63,6 +65,25 @@ func buildPeerInfo(peers []byte) []PeerInfo {
 		infos[i].Port = binary.BigEndian.Uint16(peers[offset+IpLen : offset+PeerLen])
 	}
 	return infos
+}
+
+func buildPeerInfov6(peers string) []PeerInfo {
+	ipPort := strings.Split(peers, "*")
+	infos := make([]PeerInfo, 0)
+	for _, item := range ipPort {
+		if len(item) > 0 {
+			var Peer PeerInfo
+			fmt.Println("item: ", item)
+			splitPeer := strings.Split(item, "&")
+			Peer.Ip = net.ParseIP(splitPeer[0])
+			portVal, _ := strconv.Atoi(splitPeer[1])
+			Peer.Port = uint16(portVal)
+			infos = append(infos, Peer)
+		}
+
+	}
+	return infos
+
 }
 
 func FindPeers(gt *GoTorrent, peerId [IDLEN]byte) []PeerInfo {
@@ -82,9 +103,20 @@ func FindPeers(gt *GoTorrent, peerId [IDLEN]byte) []PeerInfo {
 	defer res.Body.Close()
 
 	gp := GetGoPeers(res.Body)
+	var peers []PeerInfo
+	var peers6 []PeerInfo
+	if gp.Peers[0] == '*' {
+		peers = buildPeerInfov6(gp.Peers)
+		if len(peers6) > 0 {
+			peers6 = buildPeerInfov6(gp.Peers6)
+		}
+	} else {
+		peers = buildPeerInfo([]byte(gp.Peers))
+		if len(peers6) > 0 {
+			peers6 = buildPeerInfo([]byte(gp.Peers6))
+		}
+	}
 
-	peers := buildPeerInfo([]byte(gp.Peers))
-	peers6 := buildPeerInfo([]byte(gp.Peers6))
 	var i int
 	var j int
 	for i = range peers {
